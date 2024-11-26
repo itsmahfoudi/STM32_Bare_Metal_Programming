@@ -918,34 +918,34 @@ An example of a **main()** program  (and yes, you have to do something):
 Before moving on to the last step (uploading to the map), we need to put some code in the **main.c** to make the **Nucleo-F446RE**'s led blink:
 
 ```C
-#include <stdint.h>
+include <stdint.h>
 
-// register address
-#define RCC_BASE 0x40021000
-#define GPIOC_BASE 0x40011000
-#define RCC_APB2ENR *(volatile uint32_t *)(RCC_BASE + 0x18)
-#define GPIOC_CRH *(volatile uint32_t *)(GPIOC_BASE + 0x04)
-#define GPIOC_ODR *(volatile uint32_t *)(GPIOC_BASE + 0x0C)
+#define RCC_BASE      0x40023800
+#define GPIOA_BASE    0x40020000
 
-// bit fields
-#define RCC_IOPCEN (1<<4)
-#define GPIOC13 (1UL<<13)
+#define GPIOA_MODER   *(volatile uint32_t *) (GPIOA_BASE + 0x0)
+#define GPIOA_OTYPER  *(volatile uint32_t *) (GPIOA_BASE + 0x04)
+#define GPIOA_ODR     *(volatile uint32_t *) (GPIOA_BASE + 0x14)
+#define GPIOA_BSRR    *(volatile uint32_t *) (GPIOA_BASE + 0x18)
+#define RCC_AHB1ENR   *(volatile uint32_t *) (RCC_BASE + 0x30)
 
+#define PORTA         (0) /* 0 = PORTA*/
+#define LED_PIN       (5) /* 5 = PIN5*/
+#define RCC_GPIOAEN   (1 << PORTA)
 
-int main(void)
-{
-    RCC_APB2ENR |= RCC_IOPCEN;       /* Clock configuration  */
-    GPIOC_CRH &= 0xFF0FFFFF;         /* Port configuration   */
-    GPIOC_CRH |= 0x00200000;
+int main(){
+  RCC_AHB1ENR |= RCC_GPIOAEN;  /*Enable clock on PORTA*/
+  
+  GPIOA_MODER  &= ~(0x3 << (LED_PIN*2));
+  GPIOA_MODER  |=  (0x1 << (LED_PIN*2));
+  GPIOA_OTYPER &= ~(0x1 << LED_PIN);
 
-    while(1)
-    {
-        GPIOC_ODR |= GPIOC13;        /* GPIOC13 is ON        */
-        for (int i = 0; i < 500000; i++); /* arbitrary delay */
+  GPIOA_ODR |= (1 << LED_PIN);
+  while (1) {
+    GPIOA_ODR ^= (1 << LED_PIN);
 
-        GPIOC_ODR &= ~GPIOC13;       /* GPIOC13 is OFF       */
-        for (int i = 0; i < 500000; i++); /* arbitrary delay */
-    }
+    for (int i = 0; i < 500000; i++);
+  }  
 }
 ```
 A bit strange code because it is addressed directly to the internal registers of the micro-controller. This is not the subject of this Repository but some parts will be detailed later (Implementation section).
@@ -997,3 +997,77 @@ https://sourceforge.net/projects/mingw/postdownload (https://sourceforge.net/pro
 6. Run commands via Putty or GDB
 
 The best practice is to add a target load to the Makefile that supports the launch of OpenOCD :
+```make
+...
+
+load:
+    openocd -f interface/stlink-v2.cfg -f board/st_nucleo_f4.cfg
+
+...
+```
+Run the make load command to connect to the board while opening ports 4444 (telnet)
+and 3333 (gdb):
+
+```bash
+$ make load
+openocd -f interface/stlink-v2.cfg -f board/st_nucleo_f4.cfg
+Open On-Chip Debugger 0.11.0
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+WARNING: interface/stlink-v2.cfg is deprecated, please switch to interface/stlink.cfg
+Warn : Interface already configured, ignoring
+Error: already specified hl_layout stlink
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+srst_only separate srst_nogate srst_open_drain connect_deassert_srst
+
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : clock speed 2000 kHz
+Info : STLINK V2J45M31 (API v2) VID:PID 0483:374B
+Info : Target voltage: 3.257482
+Info : stm32f4x.cpu: hardware has 6 breakpoints, 4 watchpoints
+Info : starting gdb server for stm32f4x.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+```
+
+From now on, we'll run the GDB debugger. If you don't have it installed, type (Debian.Linux):
+**sudo apt install gdb-arm-none-eabi**
+
+Run GDB:
+```bash
+$ arm-none-eabi-gdb
+```
+The (gdb) prompt is displayed. Connect to the OpenOCD session with the following command:
+```bash
+(gdb) target extended-remote localhost:3333
+```
+After running this command, this info appears on openocd window inidicating successful connection.
+
+```bash
+Info : accepting 'gdb' connection on tcp/3333
+```
+
+First of all, run an init reset under GDB. For your information, all GDB commands must be preceded by preceded by monitor :
+
+```bash
+(gdb) monitor reset init
+```
+After that, you can download the final.elf executable file:
+```bash
+(gdb) monitor flash write_image erase final.elf
+```
+
+To examine and debug the code, you need to restart the board and then stop execution immediately. Although this won't be the subject of this article, you'll still have a nice working tool to get you started.
+Start and stop the board with this command :
+
+```bash
+(gdb) monitor reset halt
+```
+Then, to launch the code, simply run a resume :
+
+```bash
+(gdb) monitor resume
+```
+
+If everything is well, you should see the LED blink.
