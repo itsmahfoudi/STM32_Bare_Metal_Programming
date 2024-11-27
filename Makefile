@@ -11,7 +11,13 @@ all: final.elf
 final.elf: main.o stm32_startup.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
+final.bin: final.elf
+	arm-none-eabi-objcopy -O binary $^ $@
+
+st-flash: final.bin
+	st-flash --reset write final.bin 0x08000000
+
 clean:
-	rm -rf *.o *.elf
+	rm -rf *.o *.elf *.bin *.map
 load:
 	openocd -f interface/stlink-v2.cfg -f board/st_nucleo_f4.cfg
