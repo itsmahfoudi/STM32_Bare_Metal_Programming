@@ -927,7 +927,7 @@ include <stdint.h>
 #define GPIOA_OTYPER  *(volatile uint32_t *) (GPIOA_BASE + 0x04)
 #define GPIOA_ODR     *(volatile uint32_t *) (GPIOA_BASE + 0x14)
 #define GPIOA_BSRR    *(volatile uint32_t *) (GPIOA_BASE + 0x18)
-#define RCC_AHB1ENR   *(volatile uint32_t *) (RCC_BASE + 0x30)
+#define RCC_AHB1ENR   *(volatile uint32_t *) (RCC_BASE   + 0x30)
 
 #define PORTA         (0) /* 0 = PORTA*/
 #define LED_PIN       (5) /* 5 = PIN5*/
@@ -948,7 +948,21 @@ int main(){
   }  
 }
 ```
-A bit strange code because it is addressed directly to the internal registers of the micro-controller. This is not the subject of this Repository but some parts will be detailed later (Implementation section).
+A bit strange code because it is addressed directly to the internal registers of the micro-controller. 
+
+Let's take a quick look at how it works. Here, we're talking directly to the microcontroller's internal registers. These registers can be found in the Reference Manual documentation. Let's take a quick look at the various registers:
+
+RCC_BASE (fixed address 0x40023800) is used to control internal peripherals and to distribute clocks and reset signals. It can be found in the manual on page 116 under the name Reset and clock control RCC.
+
+GPIOA_BASE (fixed address 0x40020000) refers to the C port GPIO. It can be found in the manual on page 51 and 171.
+
+RCC_AHB1ENR is calculated in relation to RCC_BASE (RCC_BASE + 0x30). It is used to define peripheral clocks. It can be found on page 173.
+
+GPIOA_MODER is calculated in relation to GPIOA_BASE (GPIOC_BASE + 0x00). It refers to port mode configuration register and can be found on page 187.
+
+GPIOA_ODR is calculated relative to GPIOA_BASE (GPIOA_BASE + 0x14) . It is used to configure a port's output (Output Data Register) and can be found on page 190.
+
+GPIOA_OTYPER is calculated relative to GPIOA_BASE (GPIOA_BASE + 0x04). It is used to configure the gpio port output type and can be founded on page 188.
 
 Once all this is done, you can compile everything to check that there are no errors. If all goes well, we proceed to the download of the **ELF** file into the board thanks to **OpenOCD**.
 
