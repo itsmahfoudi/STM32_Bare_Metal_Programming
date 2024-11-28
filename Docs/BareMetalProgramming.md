@@ -954,7 +954,7 @@ Let's take a quick look at how it works. Here, we're talking directly to the mic
 
 RCC_BASE (fixed address 0x40023800) is used to control internal peripherals and to distribute clocks and reset signals. It can be found in the manual on page 116 under the name Reset and clock control RCC.
 
-GPIOA_BASE (fixed address 0x40020000) refers to the C port GPIO. It can be found in the manual on page 51 and 171.
+GPIOA_BASE (fixed address 0x40020000) refers to the C port GPIO. It can be found in the manual on page 58 and 176.
 
 RCC_AHB1ENR is calculated in relation to RCC_BASE (RCC_BASE + 0x30). It is used to define peripheral clocks. It can be found on page 173.
 
